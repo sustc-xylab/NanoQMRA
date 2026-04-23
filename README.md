@@ -10,7 +10,7 @@ For each read, `nanoQMRA` performs independent scoring and indicates:
 By integrating these features, nanoQMRA generates:
 - a per-read scored result table
 - a ranked per-read risk list
-- a final sample-level QMRA risk score
+- a final species-level risk score
 
 Therefore, nanoQMRA can be used as a nanopore-based bioinformatics workflow for microbial risk evaluation by combining pathogen association, mobility potential, and ARG carriage.
 
