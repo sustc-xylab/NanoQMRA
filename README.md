@@ -37,13 +37,13 @@ mv
 External tools required:
 
 ARGpore2
+
 Plascad
+
 Please also make sure that:
 
 all required downstream scripts are present
-all required reference files are available in the input/ directory
-the conda environment for Plascad is correctly installed if needed
-
+all required reference files are available in the input/ directory the conda environment for Plascad is correctly installed if needed
 If Plascad is installed in another conda environment, for example:
 conda activate Plascad
 Please modify environment names according to your local installation.
