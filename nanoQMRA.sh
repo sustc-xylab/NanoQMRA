@@ -14,7 +14,7 @@ Arguments:
   -p env_name       conda environment name for Plascad (default: Plascad)
 
 Description:
-  nanoQMRA wraps:
+  NanoQMRA wraps:
     1) ARGpore2
     2) Plascad
     3) custom scoring scripts
@@ -27,7 +27,7 @@ Required in current ARGpore2 directory:
   - input/ARG.csv
 
 Example:
-  bash nanoQMRA.sh -f test.fa -t 60
+  bash NanoQMRA.sh -f test.fa -t 60
 EOF
 }
 
