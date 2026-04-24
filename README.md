@@ -20,6 +20,7 @@ You can download this repository to your Linux server in one of the following wa
 
 bash
 git clone https://github.com/your-username/NanoQMRA.git
+
 cd NanoQMRA
 
 NanoQMRA is designed to run in a Linux environment.
@@ -84,9 +85,13 @@ Example:
 
 text
 output/
+
 ├── example_mother_table.scored.tsv
+
 ├── example_risk_score_list.tsv
+
 ├── example_ARGpore.log
+
 └── example_Plascad.log
 
 example_mother_table.scored.tsv
