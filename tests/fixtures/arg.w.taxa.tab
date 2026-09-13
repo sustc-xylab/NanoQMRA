@@ -1,0 +1,6 @@
+query	subtype	type	q.start	q.end	kingdom	phylum	class	order	family	genus	species	plasmid.name	source
+read1	KPC-2	beta-lactams	10	900	Bacteria	Proteobacteria	Gammaproteobacteria	Enterobacterales	Enterobacteriaceae	Klebsiella	Klebsiella pneumoniae	pKPC	plasmid.like
+read2	CTX-M-15	beta-lactams	20	800	Bacteria	Proteobacteria	Gammaproteobacteria	Enterobacterales	Enterobacteriaceae	Escherichia	Escherichia coli		
+read3	qnrS	quinolone	5	400	Bacteria	Proteobacteria	Gammaproteobacteria	Enterobacterales	Enterobacteriaceae	Salmonella	Salmonella enterica		
+read4	ermB	macrolide-lincosamide-streptogramin	1	300	Bacteria	Firmicutes	Bacilli	Lactobacillales	Streptococcaceae	Streptococcus	Streptococcus pyogenes		
+read5	tetM	tetracycline	1	200	Bacteria	Firmicutes	Bacilli	Bacillales	Staphylococcaceae	Staphylococcus	Staphylococcus aureus	pTet	plasmid.like

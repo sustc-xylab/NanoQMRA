@@ -1,0 +1,27 @@
+# CNB 流水线：打分 pytest，Python 与 environment.yml 一致（3.11）。
+# 不是 nanoqmra run 端到端。无 pyproject.toml / tests/ 的提交会跳过。
+
+.ci: &ci
+  - name: test
+    docker:
+      image: python:3.11-bookworm
+    stages:
+      - name: install-and-test
+        script: |
+          set -euo pipefail
+          python -V
+          if [ ! -f pyproject.toml ] || [ ! -d tests ]; then
+            echo "skip: this commit has no packaged tests (pyproject.toml / tests/)"
+            exit 0
+          fi
+          python -m pip install -U pip
+          python -m pip install -e ".[dev]"
+          pytest -q
+
+main:
+  push: *ci
+  pull_request: *ci
+
+mhb:
+  push: *ci
+  pull_request: *ci

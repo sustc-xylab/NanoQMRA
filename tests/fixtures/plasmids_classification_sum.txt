@@ -1,0 +1,3 @@
+read1	Conj	KPC-2
+read2	unmob	CTX-M-15
+read5	mob_unconj	tetM
