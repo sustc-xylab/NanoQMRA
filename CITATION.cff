@@ -1,0 +1,60 @@
+cff-version: 1.2.0
+title: NanoQMRA
+message: If you use this software, please cite the papers below.
+type: software
+version: 1.2.0
+repository-code: https://github.com/sustc-xylab/NanoQMRA
+license: NOASSERTION
+authors:
+  - family-names: Xia
+    given-names: Yu
+    affiliation: Southern University of Science and Technology
+  - family-names: Yan
+    given-names: Yuxi
+    affiliation: Southern University of Science and Technology
+preferred-citation:
+  type: article
+  title: A Species-resolved Quantitative Microbial Risk (QMRA) Framework for Hospital Wastewater Based on Nanopore Long-Read Sequencing
+  authors:
+    - family-names: Yan
+      given-names: Yuxi
+    - family-names: Yang
+      given-names: Jiao
+    - family-names: Zhang
+      given-names: Miao
+    - family-names: Zhao
+      given-names: Bixi
+    - family-names: Nie
+      given-names: Cailong
+    - family-names: Liu
+      given-names: Baobo
+    - family-names: Wang
+      given-names: Chen
+    - family-names: Chen
+      given-names: Yongsheng
+    - family-names: Xia
+      given-names: Yu
+references:
+  - type: article
+    title: Nanopore-based Long-read Metagenomics Uncover the Resistome Intrusion by Antibiotic Resistant Bacteria from Treated Wastewater in Receiving Water Body
+    doi: 10.1016/j.watres.2022.119282
+    year: 2022
+    journal: Water Research
+    volume: "226"
+    authors:
+      - family-names: Wu
+        given-names: Ziqi
+      - family-names: Che
+        given-names: You
+      - family-names: Xia
+        given-names: Yu
+  - type: article
+    title: Conjugative plasmids interact with insertion sequences to shape the horizontal transfer of antimicrobial resistance genes
+    doi: 10.1073/pnas.2008731118
+    year: 2021
+    journal: PNAS
+    volume: "118"
+    issue: "6"
+    authors:
+      - family-names: Che
+        given-names: You
