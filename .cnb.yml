@@ -3,6 +3,8 @@
 
 .ci: &ci
   - name: test
+    runner:
+      cpus: 1
     docker:
       image: python:3.11-bookworm
     stages:
