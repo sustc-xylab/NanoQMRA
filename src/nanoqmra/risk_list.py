@@ -101,5 +101,17 @@ def main():
     print(f"[OK] wrote: {args.output}")
 
 
+def append_sample_risk_score(risk_list_path, total_reads: int) -> str:
+    """Append sample-level risk_score = sum(read scores) / total_reads."""
+    df = pd.read_csv(risk_list_path, sep="\t")
+    summed = float(pd.to_numeric(df["risk_score"], errors="coerce").fillna(0).sum())
+    final = summed / float(total_reads)
+    text = f"{final:.6f}"
+    with open(risk_list_path, "a") as handle:
+        handle.write("\n")
+        handle.write(f"risk_score:\t{text}\n")
+    return text
+
+
 if __name__ == "__main__":
     main()

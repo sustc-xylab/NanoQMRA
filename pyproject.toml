@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanoqmra"
+version = "1.2.0"
+description = "Nanopore workflow for species-resolved microbial risk scoring"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = {text = "LicenseRef-NOASSERTION"}
+authors = [
+  {name = "Yu Xia lab, Southern University of Science and Technology"},
+]
+keywords = [
+  "nanopore",
+  "QMRA",
+  "ARG",
+  "metagenomics",
+  "plasmid",
+  "antimicrobial resistance",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+  "pandas>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sustc-xylab/NanoQMRA"
+Source = "https://github.com/sustc-xylab/NanoQMRA"
+Issues = "https://github.com/sustc-xylab/NanoQMRA/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+nanoqmra = "nanoqmra.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nanoqmra = ["data/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
