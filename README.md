@@ -31,13 +31,15 @@ This is a heuristic resistome-risk index, not a classical dose–response QMRA (
 `environment.yml` lists the conda environment (Python and pandas). After the env exists, install this repository as the `nanoqmra` command.
 
 ```bash
-git clone https://github.com/sustc-xylab/NanoQMRA.git
+git clone -b mhb https://github.com/sustc-xylab/NanoQMRA.git
 cd NanoQMRA
 conda env create -f environment.yml
 conda activate nanoqmra
 pip install .
 nanoqmra check
 ```
+
+The default branch `main` is the upstream script release. The installable package described here is on `mhb`.
 
 Scoring does **not** need ARGpore2 databases.
 
@@ -58,7 +60,7 @@ nanoqmra check --argpore-home /path/to/ARGpore2 --argpore-env argpore2 --plascad
 
 ## Usage
 
-One nanopore FASTA per run. `.fa` is accepted; the runner copies it to `.fasta` because Plascad requires that suffix. Avoid spaces in file names.
+One nanopore FASTA per run. `.fa` is accepted; the runner copies it to `.fasta` under `-o` because Plascad requires that suffix. The copy keeps the analysis directory independent of the source file. Avoid spaces in file names.
 
 ### Score only
 
@@ -93,6 +95,8 @@ Shell wrapper (same options):
 bash NanoQMRA.sh -f examples/example.fa -t 40 -o /path/to/outdir \
   --argpore-home /path/to/ARGpore2 -p Plascad
 ```
+
+On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `20211207`, Centrifuge `p_compressed+h+v`), `examples/example.fa` (2,407 records) yields a sample-level risk score of **0.154965**.
 
 ## Command-line arguments
 
