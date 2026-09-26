@@ -8,6 +8,9 @@ from pathlib import Path
 from nanoqmra.pipeline import run_score
 
 
+FASTA_SUFFIXES = {".fa", ".fasta", ".fas", ".fna", ".ffn"}
+
+
 def count_fasta_records(path: Path) -> int:
     n = 0
     with path.open() as handle:
@@ -17,10 +20,33 @@ def count_fasta_records(path: Path) -> int:
     return n
 
 
+def place_fasta(src: Path, dest: Path) -> None:
+    """Make dest available without duplicating a large FASTA when possible.
+
+    A hard link is another name for the same file. It does not follow the
+    source the way a symbolic link does, and removing dest does not remove
+    the original. If the two paths are on different filesystems, fall back
+    to a copy. Plascad looks up ``<prefix>.fasta`` beside its other outputs,
+    so dest should use that suffix even when src is ``.fa`` or ``.fna``.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists() or dest.is_symlink():
+        if dest.resolve() == src.resolve() and not dest.is_symlink():
+            return
+        dest.unlink()
+    try:
+        os.link(src, dest)
+    except OSError:
+        shutil.copy2(src, dest)
+
+
 def prepare_fasta(src: Path, dest_dir: Path, prefix: str) -> Path:
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    suffix = src.suffix.lower()
+    if suffix not in FASTA_SUFFIXES:
+        accepted = ", ".join(sorted(FASTA_SUFFIXES))
+        raise ValueError(f"unsupported FASTA suffix {suffix!r}; accepted: {accepted}")
     dest = dest_dir / f"{prefix}.fasta"
-    shutil.copy2(src, dest)
+    place_fasta(src, dest)
     return dest
 
 
@@ -111,18 +137,16 @@ def run_argpore(
 ) -> None:
     script = argpore_home / "argpore.sh"
     if not script.is_file():
-        raise FileNotFoundError(f"argpore.sh not found: {script}")
+        raise FileNotFoundError(f"argpore.sh not found: {argpore_home}")
     workdir.mkdir(parents=True, exist_ok=True)
-    local_fa = workdir / fasta.name
-    if local_fa.resolve() != fasta.resolve():
-        shutil.copy2(fasta, local_fa)
     log.parent.mkdir(parents=True, exist_ok=True)
     r_bin = _conda_env_bin(r_env) if r_env else None
     r_prefix = str(r_bin) if r_bin and (r_bin / "Rscript").is_file() else ""
     inner = (
-        "set -euo pipefail; unset PERL5LIB; "
-        + (f'export PATH="$CONDA_PREFIX/bin:{r_prefix}:$PATH"; ' if r_prefix else "")
-        + f'exec bash "{script}" -f "{local_fa.name}" -t "{threads}"'
+        "set -eu; unset PERL5LIB; "
+        + (f'export PATH="{r_prefix}:$PATH"; ' if r_prefix else "")
+        + f'export ARGPORE_HOME="{argpore_home}"; '
+        + f'exec argpore2 -f "{fasta}" -t "{threads}" -o "{workdir}"'
     )
     with log.open("w") as handle:
         subprocess.run(
@@ -147,8 +171,12 @@ def run_argpore(
 def run_plascad(fasta: Path, env_name: str, workdir: Path, log: Path) -> None:
     workdir.mkdir(parents=True, exist_ok=True)
     local_fa = workdir / fasta.name
-    if local_fa.resolve() != fasta.resolve():
-        shutil.copy2(fasta, local_fa)
+    if (
+        not local_fa.exists()
+        or local_fa.is_symlink()
+        or local_fa.resolve() != fasta.resolve()
+    ):
+        place_fasta(fasta, local_fa)
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w") as handle:
         subprocess.run(

@@ -118,7 +118,13 @@ def cmd_check(args: argparse.Namespace) -> int:
             capture_output=True,
             text=True,
         ).returncode == 0
+        cmd_ok = subprocess.run(
+            [conda, "run", "-n", argpore_env, "argpore2", "--help"],
+            capture_output=True,
+            text=True,
+        ).returncode == 0
         print(f"ARGpore2 env: {argpore_env}")
+        print(f"  argpore2  : {'OK' if cmd_ok else 'MISSING (pip install -e .)'}")
         print(f"  Bio::SeqIO: {'OK' if perl_ok else 'MISSING'}")
         print(f"  parallel  : {'OK' if par_ok else 'MISSING'}")
         print(f"  R env     : {r_env}  packages {'OK' if r_ok else 'MISSING'}")
@@ -186,7 +192,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_check.set_defaults(func=cmd_check)
 
     p_run = sub.add_parser("run", help="Full workflow: ARGpore2 -> Plascad -> score")
-    p_run.add_argument("-f", "--fasta", required=True, help="Input nanopore FASTA (.fa or .fasta)")
+    p_run.add_argument(
+        "-f",
+        "--fasta",
+        required=True,
+        help="Input nanopore FASTA (.fa, .fasta, .fas, .fna, .ffn)",
+    )
     p_run.add_argument("-t", "--threads", type=int, required=True, help="Threads for ARGpore2")
     p_run.add_argument("-o", "--outdir", required=True, help="Output directory")
     p_run.add_argument("--argpore-home", default=os.environ.get("ARGPORE_HOME", ""), help="ARGpore2 install directory")
