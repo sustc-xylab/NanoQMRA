@@ -87,13 +87,6 @@ nanoqmra run \
   --plascad-env Plascad
 ```
 
-Shell wrapper (same options):
-
-```bash
-bash NanoQMRA.sh -f examples/example.fa -t 40 -o /path/to/outdir \
-  --argpore-home /path/to/ARGpore2 -p Plascad
-```
-
 On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `20211207`, Centrifuge `p_compressed+h+v`), `examples/example.fa` (2,407 records) yields a sample-level risk score of **0.154965**.
 
 ## Command-line arguments
