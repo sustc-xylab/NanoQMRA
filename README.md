@@ -31,15 +31,13 @@ This is a heuristic resistome-risk index, not a classical dose–response QMRA (
 `environment.yml` lists the conda environment (Python and pandas). After the env exists, install this repository as the `nanoqmra` command.
 
 ```bash
-git clone -b mhb https://github.com/sustc-xylab/NanoQMRA.git
+git clone https://github.com/sustc-xylab/NanoQMRA.git
 cd NanoQMRA
 conda env create -f environment.yml
 conda activate nanoqmra
 pip install .
 nanoqmra check
 ```
-
-The default branch `main` is the upstream script release. The installable package described here is on `mhb`.
 
 Scoring does **not** need ARGpore2 databases.
 
@@ -49,7 +47,7 @@ Scoring does **not** need ARGpore2 databases.
 
 | Dependency | Conda env | Role | How to provide |
 | --- | --- | --- | --- |
-| [ARGpore2](https://github.com/sustc-xylab/ARGpore2) | `argpore2` + `argpore2-r` | ARG + taxonomy on nanopore reads | Clone and set up databases. `argpore2`: seqkit, blast, centrifuge, parallel, perl-bioperl. R packages cannot share that env (solver conflict), so they live in `argpore2-r` (`r-base`, plyr, data.table, dplyr, foreach, doParallel). `run` stitches both via `conda run`. |
+| [ARGpore2](https://github.com/sustc-xylab/ARGpore2) 2.1.1 | `argpore2` + `argpore2-r` | ARG + taxonomy on nanopore reads | `conda env create -f environment-tools.yml` and `environment-r.yml`, then `pip install -e .`, `argpore2 setup-tools`, and `argpore2 setup-db`. `run` calls `argpore2 -f ... -t ... -o ...` in the `argpore2` environment. |
 | [Plascad](https://github.com/pianpianyouche/plascad) 1.17 | `Plascad` | Plasmid mobility classification | `conda create -n Plascad -y -c bioconda -c pianpianyouche plascad` |
 
 Check what is available:
@@ -60,7 +58,7 @@ nanoqmra check --argpore-home /path/to/ARGpore2 --argpore-env argpore2 --plascad
 
 ## Usage
 
-One nanopore FASTA per run. `.fa` is accepted; the runner copies it to `.fasta` under `-o` because Plascad requires that suffix. The copy keeps the analysis directory independent of the source file. Avoid spaces in file names.
+One nanopore FASTA per run. Accepted suffixes are `.fa`, `.fasta`, `.fas`, `.fna`, and `.ffn`. Accepting the suffix does not rename the file. Plascad later opens `<stem>.fasta` in its working directory (`Plasmids_plot.py` uses `args.i + ".fasta"`), so the runner hard-links the input to `<prefix>.fasta` under `-o` when the filesystem allows it, and copies only when a hard link cannot be created. Avoid spaces in file names.
 
 ### Score only
 
@@ -116,7 +114,7 @@ On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `2021
 
 | Argument | Required | Description |
 | --- | :---: | --- |
-| `-f, --fasta` | yes | Input nanopore FASTA (`.fa` or `.fasta`) |
+| `-f, --fasta` | yes | Input nanopore FASTA (`.fa`, `.fasta`, `.fas`, `.fna`, `.ffn`) |
 | `-t, --threads` | yes | Threads for ARGpore2 |
 | `-o, --outdir` | yes | Output directory |
 | `--argpore-home` | yes* | ARGpore2 install directory (`argpore.sh` lives here). Also reads `ARGPORE_HOME` |
@@ -130,7 +128,7 @@ On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `2021
 | Argument | Required | Description |
 | --- | :---: | --- |
 | `--argpore-home` | no | Directory to inspect for ARGpore2 + databases |
-| `--argpore-env` | no | Conda env to test for perl / parallel / R (default: `argpore2`) |
+| `--argpore-env` | no | Conda env to test for the `argpore2` command, perl, and parallel (default: `argpore2`) |
 | `--plascad-env` | no | Conda env name to test (default: `Plascad`) |
 
 `check` exits 0 if Python scoring data are present. Missing ARGpore2 databases are reported as warnings; they only block `run`.
