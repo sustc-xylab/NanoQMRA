@@ -118,6 +118,21 @@ def _conda_root() -> Path | None:
     return None
 
 
+def _conda_run_path(env_name: str, *extra_bins: str) -> str:
+    """Put the target env's bin ahead of base.
+
+    ``conda run`` on this machine leaves ``miniforge3/bin`` first, so
+    ``perl`` misses Bio::SeqIO installed in the env.
+    """
+    parts: list[str] = []
+    bindir = _conda_env_bin(env_name)
+    if bindir is not None:
+        parts.append(str(bindir))
+    parts.extend(b for b in extra_bins if b)
+    parts.append("$PATH")
+    return ":".join(parts)
+
+
 def _conda_env_bin(env_name: str) -> Path | None:
     root = _conda_root()
     if root is None:
@@ -144,7 +159,7 @@ def run_argpore(
     r_prefix = str(r_bin) if r_bin and (r_bin / "Rscript").is_file() else ""
     inner = (
         "set -eu; unset PERL5LIB; "
-        + (f'export PATH="{r_prefix}:$PATH"; ' if r_prefix else "")
+        + f'export PATH="{_conda_run_path(env_name, r_prefix)}"; '
         + f'export ARGPORE_HOME="{argpore_home}"; '
         + f'exec argpore2 -f "{fasta}" -t "{threads}" -o "{workdir}"'
     )
@@ -180,7 +195,16 @@ def run_plascad(fasta: Path, env_name: str, workdir: Path, log: Path) -> None:
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w") as handle:
         subprocess.run(
-            [_conda_exe(), "run", "-n", env_name, "--no-capture-output", "Plascad", "-i", local_fa.name],
+            [
+                _conda_exe(),
+                "run",
+                "-n",
+                env_name,
+                "--no-capture-output",
+                "bash",
+                "-c",
+                f'export PATH="{_conda_run_path(env_name)}"; exec Plascad -i "{local_fa.name}"',
+            ],
             cwd=workdir,
             env=_conda_run_env(),
             stdout=handle,
