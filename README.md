@@ -1,164 +1,166 @@
 # NanoQMRA
 
-NanoQMRA is a bioinformatics tool for quantitative microbial risk assessment (QMRA) based on nanopore sequencing data. It is designed to calculate QMRA-related risk values for both individual reads in species level.
+NanoQMRA is a bioinformatics workflow for species-resolved microbial risk scoring from nanopore long reads. For each read it combines:
 
-For each read, `NanoQMRA` performs independent scoring and indicates:
-- whether the read is associated with a pathogenic host
-- whether the corresponding genetic element has mobility
-- whether the read carries an antibiotic resistance gene (ARG)
+- pathogen / WHO-priority association
+- plasmid mobility (conjugative / mobile / non-mobile)
+- antibiotic resistance gene (ARG) carriage
 
-By integrating these features, NanoQMRA generates:
-- a per-read scored result table
+Outputs:
+
+- a per-read scored table
 - a ranked per-read risk list
-- a final species-level risk score
+- a sample-level `risk_score`
 
-Therefore, NanoQMRA can be used as a nanopore-based bioinformatics workflow for microbial risk evaluation by combining pathogen association, mobility potential, and ARG carriage.
+Per-read score:
 
-## Download and environment setup
+```text
+risk_score = WHO_priority_score × ARG_rank_score × mobile_factor × conjugative_plasmid_factor
+```
 
-You can download this repository to your Linux server in one of the following ways.
+Sample score:
 
-bash
-git clone https://github.com/your-username/NanoQMRA.git
+```text
+sample risk_score = sum(read risk_score) / number of FASTA records
+```
 
+This is a heuristic resistome-risk index, not a classical dose–response QMRA (no exposure or infection probability).
+
+## Installation
+
+`environment.yml` lists the conda environment (Python and pandas). After the env exists, install this repository as the `nanoqmra` command.
+
+```bash
+git clone https://github.com/sustc-xylab/NanoQMRA.git
 cd NanoQMRA
+conda env create -f environment.yml
+conda activate nanoqmra
+pip install .
+nanoqmra check
+```
 
-NanoQMRA is designed to run in a Linux environment.
+Scoring does **not** need ARGpore2 databases.
 
-Basic tools required:
+### Full workflow dependencies
 
-bash
-python3
-awk
-grep
-find
-sort
-cp
-mv
-External tools required:
+`nanoqmra run` also needs two external tools in **their own conda envs**. The runner calls them with `conda run` (you do not activate those envs yourself):
 
-ARGpore2
+| Dependency | Conda env | Role | How to provide |
+| --- | --- | --- | --- |
+| [ARGpore2](https://github.com/sustc-xylab/ARGpore2) 2.1.1 | `argpore2` + `argpore2-r` | ARG + taxonomy on nanopore reads | `conda env create -f environment-tools.yml` and `environment-r.yml`, then `pip install -e .`, `argpore2 setup-tools`, and `argpore2 setup-db`. `run` calls `argpore2 -f ... -t ... -o ...` in the `argpore2` environment. |
+| [Plascad](https://github.com/pianpianyouche/plascad) 1.17 | `Plascad` | Plasmid mobility classification | `conda create -n Plascad -y -c bioconda -c pianpianyouche plascad` |
 
-Plascad
+Check what is available:
 
-Please also make sure that:
+```bash
+nanoqmra check --argpore-home /path/to/ARGpore2 --argpore-env argpore2 --plascad-env Plascad
+```
 
-all required downstream scripts are present
-all required reference files are available in the input/ directory the conda environment for Plascad is correctly installed if needed
-If Plascad is installed in another conda environment, for example:
-conda activate Plascad
-Please modify environment names according to your local installation.
+## Usage
 
-## How to use
-NanoQMRA currently accepts one nanopore FASTA file per run.
+One nanopore FASTA per run. Accepted suffixes are `.fa`, `.fasta`, `.fas`, `.fna`, and `.ffn`. Accepting the suffix does not rename the file. Plascad later opens `<stem>.fasta` in its working directory (`Plasmids_plot.py` uses `args.i + ".fasta"`), so the runner hard-links the input to `<prefix>.fasta` under `-o` when the filesystem allows it, and copies only when a hard link cannot be created. Avoid spaces in file names.
 
-Examples of input files:
-example.fa
-example.fasta
-Please avoid spaces or special characters in file names.
+### Score only
 
-Run the workflow with:
+Use this when ARGpore2 and Plascad tables already exist.
 
-bash
-bash NanoQMRA.sh -f <input.fa> -t <threads> -p <plascad_env>
+```bash
+nanoqmra score \
+  --arg-taxa sample.arg.w.taxa.tab \
+  --plasmid-sum sample_plasmids_classification_sum.txt \
+  -o results \
+  --prefix sample \
+  --total-reads 2407
+```
 
-Parameters:
+### Full workflow
 
--f: input FASTA file
+Writes **only** under `-o`. Nothing is copied back into the git repository.
 
--t: number of threads
+```bash
+nanoqmra run \
+  -f examples/example.fa \
+  -t 40 \
+  -o /path/to/outdir \
+  --argpore-home /path/to/ARGpore2 \
+  --argpore-env argpore2 \
+  --plascad-env Plascad
+```
 
--p: conda environment name used for running Plascad
+On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `20211207`, Centrifuge `p_compressed+h+v`), `examples/example.fa` (2,407 records) yields a sample-level risk score of **0.154965**.
 
-Example:
+## Command-line arguments
 
-bash NanoQMRA.sh -f example.fa -t 40 -p Plascad
+### `nanoqmra score`
 
-The workflow performs the following steps:
+| Argument | Required | Description |
+| --- | :---: | --- |
+| `--arg-taxa` | yes | ARGpore2 `*.arg.w.taxa.tab` |
+| `--plasmid-sum` | yes | Plascad `*_plasmids_classification_sum.txt` |
+| `-o, --outdir` | yes | Output directory |
+| `--prefix` | no | Output file prefix (default: from `--arg-taxa` name) |
+| `--rules` | no | Rules directory (default: packaged `src/nanoqmra/data/rules`) |
+| `--arg-csv` | no | ARG rank CSV (default: packaged `ARG.csv`) |
+| `--total-reads` | no | FASTA record count; if set, appends sample `risk_score` |
 
-Run ARGpore2 on the input nanopore FASTA file
-Locate and collect ARG-related taxonomy / summary result files
+### `nanoqmra run`
 
-Run Plascad to classify plasmid mobility
-Copy required intermediate files into the input/ directory for downstream analysis
-Run downstream scoring scripts to calculate per-read scores and the final sample-level risk_score
+| Argument | Required | Description |
+| --- | :---: | --- |
+| `-f, --fasta` | yes | Input nanopore FASTA (`.fa`, `.fasta`, `.fas`, `.fna`, `.ffn`) |
+| `-t, --threads` | yes | Threads for ARGpore2 |
+| `-o, --outdir` | yes | Output directory |
+| `--argpore-home` | yes* | ARGpore2 install directory (`argpore.sh` lives here). Also reads `ARGPORE_HOME` |
+| `--argpore-env` | no | Conda env for ARGpore2 tools (default: `argpore2`, or `ARGPORE_ENV`) |
+| `--plascad-env` | no | Conda env that provides `Plascad` (default: `Plascad`) |
 
-## Output files
-After running, NanoQMRA generates both final result files and intermediate files.
+\* Required unless `ARGPORE_HOME` is set.
 
-Final result files are written to the output/ directory.
+### `nanoqmra check`
 
-Example:
+| Argument | Required | Description |
+| --- | :---: | --- |
+| `--argpore-home` | no | Directory to inspect for ARGpore2 + databases |
+| `--argpore-env` | no | Conda env to test for the `argpore2` command, perl, and parallel (default: `argpore2`) |
+| `--plascad-env` | no | Conda env name to test (default: `Plascad`) |
 
-output/
+`check` exits 0 if Python scoring data are present. Missing ARGpore2 databases are reported as warnings; they only block `run`.
 
-├── example_mother_table.scored.tsv
+## Output layout
 
-├── example_risk_score_list.tsv
+```text
+outdir/
+├── input/                      # normalized *.fasta
+├── logs/
+│   ├── *_ARGpore.log
+│   └── *_Plascad.log
+├── intermediate/
+│   ├── argpore2/
+│   └── plascad/
+└── results/
+    ├── *_mother_table.scored.tsv
+    └── *_risk_score_list.tsv
+```
 
-├── example_ARGpore.log
+`*_mother_table.scored.tsv` — ARG, WHO priority, mobility factors, and per-read `risk_score`.
 
-└── example_Plascad.log
+`*_risk_score_list.tsv` — ranked reads; sample-level `risk_score` is appended when `--total-reads` is set (always for `run`).
 
-example_mother_table.scored.tsv
-This is the main integrated scoring table.
+Packaged reference data (do not duplicate at repo root):
 
-It contains annotation and scoring information for each read / record, including:
+- `src/nanoqmra/data/rules/` — WHO matching rules
+- `src/nanoqmra/data/reference/ARG.csv` — ARG rank table
 
-ARG-related annotation
-pathogen-related annotation
-mobility-related classification
-combined risk-related scoring results
-This file can be used as the main summary table for downstream analysis.
+## License
 
-example_risk_score_list.tsv
-This file contains the ranked per-read risk list.
-
-It can be used to:
-
-inspect the score of each read individually
-
-rank reads according to their risk values
-
-identify reads contributing most strongly to sample-level risk
-
-This file also includes the final sample-level QMRA risk score.
-
-example_ARGpore.log
-
-Log file generated during the ARGpore2 step.
-
-It is useful for checking whether ARG annotation completed successfully.
-
-example_Plascad.log
-
-Log file generated during the Plascad step.
-
-It is useful for checking whether plasmid mobility classification completed successfully.
-
-Intermediate files are automatically organized into the intermediate/ directory for traceability and troubleshooting.
-
-Example:
-
-intermediate/example/
-
-├── example.fa.uniq_ARGpore2
-
-├── example_Conjugative_plasmids_map
-
-├── example_Conj_plasmids_loc_sum.txt
-
-├── example_mob_unconj_plasmids_loc_sum.txt
-
-└── example_plasmids_classification_sum.txt
-
-These files are intermediate outputs generated by upstream tools and retained for result checking and workflow tracking.
+No license file has been added yet. The GitHub default is “no assertion”; choose MIT / Apache-2.0 / GPL-3.0 before a public release.
 
 ## Citation
 
+See `CITATION.cff`. Related papers:
+
 Y. CHE, et al., Conjugative plasmids interact with insertion sequences to shape the horizontal transfer of antimicrobial resistance genes. PNAS. 118(6):e2008731118. doi: 10.1073/pnas.2008731118
 
-Ziqi Wu, You Che, Chenyuan Dang, Miao Zhang, Xuyang Zhang, Yuhong Sun, Xiang Li, Tong Zhang, Yu Xia*. 2022. Nanopore-based Long-read Metagenomics Uncover the Resistome Intrusion by Antibiotic Resistant Bacteria from Treated Wastewater in Receiving Water Body. Water Research. 226:119282. ( https://doi.org/10.1016/j.watres.2022.119282)
+Ziqi Wu, You Che, Chenyuan Dang, Miao Zhang, Xuyang Zhang, Yuhong Sun, Xiang Li, Tong Zhang, Yu Xia*. 2022. Nanopore-based Long-read Metagenomics Uncover the Resistome Intrusion by Antibiotic Resistant Bacteria from Treated Wastewater in Receiving Water Body. Water Research. 226:119282. (https://doi.org/10.1016/j.watres.2022.119282)
 
 Yuxi Yan, Jiao Yang, Miao Zhang, Bixi Zhao, Cailong Nie, Baobo Liu, Chen Wang, Yongsheng Chen, Yu Xia*. A Species-resolved Quantitative Microbial Risk (QMRA) Framework for Hospital Wastewater Based on Nanopore Long-Read Sequencing.
-
