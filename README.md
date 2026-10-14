@@ -1,8 +1,8 @@
-# NanoQMRA
+# NanoAMRRank
 
-NanoQMRA is a bioinformatics workflow for species-resolved microbial risk scoring from nanopore long reads. For each read it combines:
+NanoAMRRank is an assembly-free bioinformatics workflow for antimicrobial resistance (AMR) risk scoring and prioritization from nanopore long reads. It links antibiotic resistance genes (ARGs), mobile genetic elements (MGEs), and pathogen-associated taxonomic signals (PATSs) on individual reads, providing read-level evidence for species-resolved AMR risk assessment. For each read it combines:
 
-- pathogen / WHO-priority association
+- pathogen-associated taxonomy and WHO priority
 - plasmid mobility (conjugative / mobile / non-mobile)
 - antibiotic resistance gene (ARG) carriage
 
@@ -10,40 +10,42 @@ Outputs:
 
 - a per-read scored table
 - a ranked per-read risk list
-- a sample-level `risk_score`
+- a sample-level relative AMR risk index (`risk_score`)
 
-Per-read score:
+Read-level relative risk score:
 
 ```text
 risk_score = WHO_priority_score × ARG_rank_score × mobile_factor × conjugative_plasmid_factor
 ```
 
-Sample score:
+Sample-level relative risk index:
 
 ```text
 sample risk_score = sum(read risk_score) / number of FASTA records
 ```
 
-This is a heuristic resistome-risk index, not a classical dose–response QMRA (no exposure or infection probability).
+These scores support comparative AMR risk prioritization. The workflow does not calculate exposure doses or infection probabilities and does not implement pathogen-specific dose–response modeling. It can provide inputs for subsequent quantitative microbial risk assessment (QMRA).
+
+The outputs listed here rank individual reads and summarize the sample-level index. Species-level ranking requires downstream aggregation of read scores by assigned host species. The scoring commands described below do not incorporate iDNA/eDNA weighting, absolute 16S rRNA gene abundance, or questionnaire-derived exposure information.
 
 ## Installation
 
-`environment.yml` lists the conda environment (Python and pandas). After the env exists, install this repository as the `nanoqmra` command.
+`environment.yml` lists the conda environment (Python and pandas). After the env exists, install this repository as the `nanoamrrank` command.
 
 ```bash
-git clone https://github.com/sustc-xylab/NanoQMRA.git
-cd NanoQMRA
+git clone https://github.com/sustc-xylab/NanoAMRRank.git
+cd NanoAMRRank
 conda env create -f environment.yml
-conda activate nanoqmra
+conda activate nanoamrrank
 pip install .
-nanoqmra check
+nanoamrrank check
 ```
 
 Scoring does **not** need ARGpore2 databases.
 
 ### Full workflow dependencies
 
-`nanoqmra run` also needs two external tools in **their own conda envs**. The runner calls them with `conda run` (you do not activate those envs yourself):
+`nanoamrrank run` also needs two external tools in **their own conda envs**. The runner calls them with `conda run` (you do not activate those envs yourself):
 
 | Dependency | Conda env | Role | How to provide |
 | --- | --- | --- | --- |
@@ -53,7 +55,7 @@ Scoring does **not** need ARGpore2 databases.
 Check what is available:
 
 ```bash
-nanoqmra check --argpore-home /path/to/ARGpore2 --argpore-env argpore2 --plascad-env Plascad
+nanoamrrank check --argpore-home /path/to/ARGpore2 --argpore-env argpore2 --plascad-env Plascad
 ```
 
 ## Usage
@@ -65,7 +67,7 @@ One nanopore FASTA per run. Accepted suffixes are `.fa`, `.fasta`, `.fas`, `.fna
 Use this when ARGpore2 and Plascad tables already exist.
 
 ```bash
-nanoqmra score \
+nanoamrrank score \
   --arg-taxa sample.arg.w.taxa.tab \
   --plasmid-sum sample_plasmids_classification_sum.txt \
   -o results \
@@ -78,7 +80,7 @@ nanoqmra score \
 Writes **only** under `-o`. Nothing is copied back into the git repository.
 
 ```bash
-nanoqmra run \
+nanoamrrank run \
   -f examples/example.fa \
   -t 40 \
   -o /path/to/outdir \
@@ -87,11 +89,11 @@ nanoqmra run \
   --plascad-env Plascad
 ```
 
-On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `20211207`, Centrifuge `p_compressed+h+v`), `examples/example.fa` (2,407 records) yields a sample-level risk score of **0.154965**.
+On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `20211207`, Centrifuge `p_compressed+h+v`), `examples/example.fa` (2,407 records) yields a sample-level relative AMR risk index of **0.154965**.
 
 ## Command-line arguments
 
-### `nanoqmra score`
+### `nanoamrrank score`
 
 | Argument | Required | Description |
 | --- | :---: | --- |
@@ -99,11 +101,11 @@ On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `2021
 | `--plasmid-sum` | yes | Plascad `*_plasmids_classification_sum.txt` |
 | `-o, --outdir` | yes | Output directory |
 | `--prefix` | no | Output file prefix (default: from `--arg-taxa` name) |
-| `--rules` | no | Rules directory (default: packaged `src/nanoqmra/data/rules`) |
+| `--rules` | no | Rules directory (default: packaged `src/nanoamrrank/data/rules`) |
 | `--arg-csv` | no | ARG rank CSV (default: packaged `ARG.csv`) |
 | `--total-reads` | no | FASTA record count; if set, appends sample `risk_score` |
 
-### `nanoqmra run`
+### `nanoamrrank run`
 
 | Argument | Required | Description |
 | --- | :---: | --- |
@@ -116,7 +118,7 @@ On the reference databases shipped with ARGpore2 (PLSDB `2020_03_04`, SARG `2021
 
 \* Required unless `ARGPORE_HOME` is set.
 
-### `nanoqmra check`
+### `nanoamrrank check`
 
 | Argument | Required | Description |
 | --- | :---: | --- |
@@ -142,18 +144,18 @@ outdir/
     └── *_risk_score_list.tsv
 ```
 
-`*_mother_table.scored.tsv` — ARG, WHO priority, mobility factors, and per-read `risk_score`.
+`*_mother_table.scored.tsv` — ARG annotations, WHO priority, mobility factors, and read-level relative `risk_score`.
 
-`*_risk_score_list.tsv` — ranked reads; sample-level `risk_score` is appended when `--total-reads` is set (always for `run`).
+`*_risk_score_list.tsv` — ranked reads; the sample-level relative AMR risk index (`risk_score`) is appended when `--total-reads` is set (always for `run`).
 
 Packaged reference data (do not duplicate at repo root):
 
-- `src/nanoqmra/data/rules/` — WHO matching rules
-- `src/nanoqmra/data/reference/ARG.csv` — ARG rank table
+- `src/nanoamrrank/data/rules/` — WHO matching rules
+- `src/nanoamrrank/data/reference/ARG.csv` — ARG rank table
 
 ## License
 
-No license file has been added yet. The GitHub default is “no assertion”; choose MIT / Apache-2.0 / GPL-3.0 before a public release.
+A license has not yet been specified. Consult the repository maintainers regarding permission to use, modify, or redistribute the software.
 
 ## Citation
 
